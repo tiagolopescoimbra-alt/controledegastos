@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinGestor — Controle Financeiro Profissional</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#0d0d1a;color:#fff;line-height:1.6}
+
+/* NAV */
+nav{display:flex;justify-content:space-between;align-items:center;padding:18px 60px;background:rgba(13,13,26,.95);position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.07)}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.logo-box{width:38px;height:38px;background:#e63946;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.logo-text{font-size:20px;font-weight:700;letter-spacing:.5px}
+.btn-nav{background:#e63946;color:#fff;border:none;padding:9px 22px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;text-decoration:none;transition:background .2s}
+.btn-nav:hover{background:#c0303c}
+
+/* HERO */
+.hero{text-align:center;padding:90px 20px 70px;background:linear-gradient(180deg,#0d0d1a 0%,#1a0a1e 100%)}
+.hero-badge{display:inline-block;background:rgba(230,57,70,.15);border:1px solid rgba(230,57,70,.4);color:#e63946;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:24px;text-transform:uppercase}
+.hero h1{font-size:52px;font-weight:800;line-height:1.15;margin-bottom:20px;max-width:760px;margin-left:auto;margin-right:auto}
+.hero h1 span{color:#e63946}
+.hero p{font-size:18px;color:#9ca3af;max-width:580px;margin:0 auto 36px}
+.btn-hero{display:inline-block;background:#e63946;color:#fff;padding:15px 38px;border-radius:10px;font-size:17px;font-weight:700;text-decoration:none;cursor:pointer;border:none;transition:transform .15s,background .2s}
+.btn-hero:hover{background:#c0303c;transform:translateY(-2px)}
+.hero-note{font-size:12px;color:#6b7280;margin-top:12px}
+
+/* SCREENSHOTS / PREVIEW */
+.preview{background:#111126;padding:50px 60px;text-align:center}
+.preview-inner{background:linear-gradient(135deg,#1e1e3a,#12122a);border-radius:18px;padding:30px;max-width:900px;margin:0 auto;border:1px solid rgba(255,255,255,.08)}
+.preview-bar{display:flex;gap:6px;margin-bottom:20px}
+.preview-dot{width:12px;height:12px;border-radius:50%}
+.preview-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.p-card{border-radius:10px;padding:14px;text-align:left}
+.p-card.green{background:linear-gradient(135deg,#27ae60,#2ecc71)}
+.p-card.red{background:linear-gradient(135deg,#c0392b,#e63946)}
+.p-card.yellow{background:linear-gradient(135deg,#d68910,#f39c12)}
+.p-card.blue{background:linear-gradient(135deg,#1a5276,#2980b9)}
+.p-card-label{font-size:9px;font-weight:700;opacity:.8;letter-spacing:.5px;text-transform:uppercase}
+.p-card-val{font-size:20px;font-weight:800;margin-top:4px}
+.p-table{background:rgba(255,255,255,.05);border-radius:10px;overflow:hidden}
+.p-row{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.p-row:last-child{border-bottom:none}
+.p-row.header{background:rgba(255,255,255,.05);font-weight:700;font-size:10px;letter-spacing:.5px;opacity:.7}
+
+/* FEATURES */
+.features{padding:80px 60px;background:#0d0d1a}
+.section-title{text-align:center;margin-bottom:50px}
+.section-title h2{font-size:36px;font-weight:800;margin-bottom:10px}
+.section-title p{color:#9ca3af;font-size:16px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:0 auto}
+.feat-card{background:#111126;border-radius:14px;padding:28px;border:1px solid rgba(255,255,255,.06);transition:border-color .2s}
+.feat-card:hover{border-color:rgba(230,57,70,.3)}
+.feat-icon{font-size:32px;margin-bottom:14px}
+.feat-card h3{font-size:17px;font-weight:700;margin-bottom:8px}
+.feat-card p{color:#9ca3af;font-size:14px}
+
+/* PRICING */
+.pricing{padding:80px 60px;background:#0a0a18;text-align:center}
+.price-card{background:linear-gradient(135deg,#1a1a35,#111126);border:2px solid #e63946;border-radius:20px;padding:40px;max-width:380px;margin:0 auto;position:relative;overflow:hidden}
+.price-card::before{content:'MAIS POPULAR';position:absolute;top:16px;right:-22px;background:#e63946;color:#fff;font-size:10px;font-weight:700;padding:4px 36px;transform:rotate(35deg);letter-spacing:1px}
+.price-name{font-size:20px;font-weight:700;margin-bottom:6px}
+.price-amount{font-size:58px;font-weight:900;margin:16px 0 4px;color:#fff}
+.price-amount sup{font-size:24px;vertical-align:top;margin-top:12px;display:inline-block}
+.price-period{color:#9ca3af;font-size:14px;margin-bottom:28px}
+.price-features{text-align:left;margin-bottom:30px}
+.price-feat{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px;color:#d1d5db}
+.price-feat span{color:#e63946;font-size:16px}
+.btn-assinar{width:100%;background:#e63946;color:#fff;border:none;padding:16px;border-radius:10px;font-size:17px;font-weight:700;cursor:pointer;text-decoration:none;display:block;transition:background .2s}
+.btn-assinar:hover{background:#c0303c}
+.price-guarantee{font-size:12px;color:#6b7280;margin-top:14px}
+
+/* FOOTER */
+footer{background:#090912;padding:30px 60px;text-align:center;color:#4b5563;font-size:13px;border-top:1px solid rgba(255,255,255,.05)}
+
+@media(max-width:768px){
+  nav{padding:16px 20px}
+  .hero h1{font-size:34px}
+  .hero p{font-size:15px}
+  .preview{padding:30px 20px}
+  .features,.pricing{padding:60px 20px}
+  .feat-grid{grid-template-columns:1fr}
+  .preview-cards{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="logo-box">💰</div>
+    <span class="logo-text">FinGestor</span>
+  </div>
+  <a href="login.html" class="btn-nav">Entrar / Assinar</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">✨ Controle total do seu negócio</div>
+  <h1>Gerencie suas finanças<br>com <span>facilidade e precisão</span></h1>
+  <p>Lançamentos, receitas, despesas, agenda e orçamentos profissionais em um só lugar.</p>
+  <a href="login.html" class="btn-hero">Começar agora — R$ 29,90/mês</a>
+  <p class="hero-note">Cancele quando quiser · Sem fidelidade</p>
+</section>
+
+<!-- PREVIEW -->
+<section class="preview">
+  <div class="preview-inner">
+    <div class="preview-bar">
+      <div class="preview-dot" style="background:#ff5f57"></div>
+      <div class="preview-dot" style="background:#febc2e"></div>
+      <div class="preview-dot" style="background:#28c840"></div>
+    </div>
+    <div class="preview-cards">
+      <div class="p-card green"><div class="p-card-label">Entradas</div><div class="p-card-val">R$ 8.450</div></div>
+      <div class="p-card red"><div class="p-card-label">Saídas</div><div class="p-card-val">R$ 3.210</div></div>
+      <div class="p-card yellow"><div class="p-card-label">Saldo</div><div class="p-card-val">R$ 5.240</div></div>
+      <div class="p-card blue"><div class="p-card-label">Recebíveis</div><div class="p-card-val">R$ 2.100</div></div>
+    </div>
+    <div class="p-table">
+      <div class="p-row header"><span>DESCRIÇÃO</span><span>TIPO</span><span>VALOR</span><span>STATUS</span></div>
+      <div class="p-row"><span>Serviço de instalação</span><span style="color:#2ecc71">Entrada</span><span style="color:#2ecc71">+R$ 1.200</span><span>✅ Recebido</span></div>
+      <div class="p-row"><span>Aluguel do espaço</span><span style="color:#e63946">Saída</span><span style="color:#e63946">-R$ 800</span><span>✅ Pago</span></div>
+      <div class="p-row"><span>Manutenção preventiva</span><span style="color:#e63946">Saída</span><span style="color:#e63946">-R$ 350</span><span>⏳ Pendente</span></div>
+      <div class="p-row"><span>Consultoria mensal</span><span style="color:#2ecc71">Entrada</span><span style="color:#2ecc71">+R$ 2.500</span><span>✅ Recebido</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-title">
+    <h2>Tudo que você precisa</h2>
+    <p>Funcionalidades pensadas para quem quer controle real do negócio</p>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <h3>Planilha de Gastos</h3>
+      <p>Registre entradas e saídas com categorias, datas e status. Veja o saldo em tempo real.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📄</div>
+      <h3>Emitir Orçamentos</h3>
+      <p>Crie orçamentos profissionais com sua logo e dados da empresa. Exporte em PDF ou envie pelo WhatsApp.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📅</div>
+      <h3>Agenda de Eventos</h3>
+      <p>Controle vencimentos, compromissos e lembretes. Nunca mais perca um prazo importante.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">💳</div>
+      <h3>Formas de Pagamento</h3>
+      <p>PIX, dinheiro, cartão, boleto e transferência. Registre como cada cliente pagou.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚙️</div>
+      <h3>Personalizável</h3>
+      <p>Coloque o nome da sua empresa, CNPJ, logo e segmento. O app vira seu.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📱</div>
+      <h3>Acesso em Qualquer Lugar</h3>
+      <p>Funciona no celular e computador. Acesse de onde estiver com segurança.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing">
+  <div class="section-title">
+    <h2>Plano único, sem surpresas</h2>
+    <p>Acesso completo a todas as funcionalidades</p>
+  </div>
+  <div class="price-card">
+    <div class="price-name">Plano Mensal</div>
+    <div class="price-amount"><sup>R$</sup>29<span style="font-size:32px">,90</span></div>
+    <div class="price-period">por mês · cobrado mensalmente</div>
+    <div class="price-features">
+      <div class="price-feat"><span>✓</span> Planilha de controle de gastos</div>
+      <div class="price-feat"><span>✓</span> Emissão ilimitada de orçamentos</div>
+      <div class="price-feat"><span>✓</span> Export PDF profissional</div>
+      <div class="price-feat"><span>✓</span> Envio direto pelo WhatsApp</div>
+      <div class="price-feat"><span>✓</span> Agenda e lembretes</div>
+      <div class="price-feat"><span>✓</span> Suporte por WhatsApp</div>
+    </div>
+    <a href="login.html" class="btn-assinar">Assinar agora</a>
+    <p class="price-guarantee">🔒 Pagamento seguro via Stripe · Cancele quando quiser</p>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 FinGestor · Todos os direitos reservados</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinGestor — Entrar</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#0d0d1a;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#111126;border-radius:18px;padding:40px;width:100%;max-width:420px;border:1px solid rgba(255,255,255,.08)}
+.logo{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:30px}
+.logo-box{width:44px;height:44px;background:#e63946;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.logo-text{font-size:22px;font-weight:700}
+.tabs{display:flex;gap:4px;background:#0d0d1a;border-radius:10px;padding:4px;margin-bottom:28px}
+.tab{flex:1;padding:9px;text-align:center;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:#6b7280;transition:all .2s}
+.tab.active{background:#e63946;color:#fff}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:600;color:#9ca3af;margin-bottom:6px}
+.field input{width:100%;background:#0d0d1a;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:11px 14px;color:#fff;font-size:14px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:#e63946}
+.btn-submit{width:100%;background:#e63946;color:#fff;border:none;padding:14px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:6px;transition:background .2s}
+.btn-submit:hover{background:#c0303c}
+.btn-submit:disabled{background:#555;cursor:not-allowed}
+.msg{text-align:center;margin-top:16px;font-size:13px;padding:10px 14px;border-radius:8px;display:none}
+.msg.error{background:rgba(230,57,70,.15);color:#f87171;display:block;border:1px solid rgba(230,57,70,.3)}
+.msg.success{background:rgba(39,174,96,.15);color:#6ee7b7;display:block;border:1px solid rgba(39,174,96,.3)}
+.back{display:block;text-align:center;margin-top:20px;color:#6b7280;font-size:13px;text-decoration:none}
+.back:hover{color:#fff}
+.divider{text-align:center;color:#4b5563;font-size:12px;margin:18px 0;position:relative}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:rgba(255,255,255,.08)}
+.divider::before{left:0}.divider::after{right:0}
+.subscription-section{display:none;text-align:center}
+.sub-icon{font-size:48px;margin-bottom:16px}
+.sub-title{font-size:20px;font-weight:700;margin-bottom:8px}
+.sub-desc{color:#9ca3af;font-size:14px;margin-bottom:24px}
+.btn-sub{width:100%;background:#e63946;color:#fff;border:none;padding:14px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s}
+.btn-sub:hover{background:#c0303c}
+.sub-price{font-size:12px;color:#6b7280;margin-top:10px}
+.spinner{display:none;width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay{position:fixed;inset:0;background:#0d0d1a;display:flex;align-items:center;justify-content:center;z-index:999;font-size:16px;color:#9ca3af}
+.overlay .spinner{width:32px;height:32px;display:block;border-width:3px;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div style="text-align:center">
+    <div class="spinner"></div>
+    <div>Verificando acesso...</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-box">💰</div>
+    <span class="logo-text">FinGestor</span>
+  </div>
+
+  <!-- AUTH FORM -->
+  <div id="authSection">
+    <div class="tabs">
+      <div class="tab active" id="tabLogin" onclick="switchTab('login')">Entrar</div>
+      <div class="tab" id="tabCadastro" onclick="switchTab('cadastro')">Criar conta</div>
+    </div>
+
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" id="email" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="senha" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth()">
+    </div>
+
+    <button class="btn-submit" id="btnAuth" onclick="doAuth()">Entrar</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <!-- SUBSCRIPTION SECTION (aparece se não tem assinatura) -->
+  <div class="subscription-section" id="subSection">
+    <div class="sub-icon">🔒</div>
+    <div class="sub-title">Ative seu acesso</div>
+    <div class="sub-desc">Para usar o FinGestor, assine o plano mensal por apenas <strong style="color:#e63946">R$ 29,90/mês</strong>.</div>
+    <button class="btn-sub" id="btnAssinar" onclick="assinar()">Assinar agora →</button>
+    <p class="sub-price">🔒 Pagamento seguro · Cancele quando quiser</p>
+    <a href="#" class="back" onclick="sair()">← Usar outra conta</a>
+  </div>
+
+  <a href="index.html" class="back">← Voltar para o site</a>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://gxqekojzvmssdqutcmjk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Jsp0-SFoFAHHQp5MxhqOjg_uEO3Pfih';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let currentTab = 'login';
+
+// ─── Verificar se já está logado ───
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  document.getElementById('overlay').style.display = 'none';
+
+  // Verificar se veio com cancelamento do Stripe
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('canceled')) {
+    showMsg('Assinatura cancelada. Tente novamente quando quiser.', 'error');
+  }
+
+  if (session) {
+    currentUser = session.user;
+    await checkSubscription(currentUser);
+  }
+}
+
+// ─── Verificar assinatura no Supabase ───
+async function checkSubscription(user) {
+  const { data, error } = await sb
+    .from('subscriptions')
+    .select('status')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!error && data && data.status === 'active') {
+    // Tem assinatura ativa → vai para o app
+    window.location.href = 'app.html';
+  } else {
+    // Sem assinatura → mostrar botão de assinar
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('subSection').style.display = 'block';
+  }
+}
+
+// ─── Login / Cadastro ───
+async function doAuth() {
+  const email = document.getElementById('email').value.trim();
+  const senha = document.getElementById('senha').value;
+  const btn = document.getElementById('btnAuth');
+
+  if (!email || !senha) {
+    showMsg('Preencha e-mail e senha.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Aguarde...';
+  clearMsg();
+
+  let result;
+  if (currentTab === 'login') {
+    result = await sb.auth.signInWithPassword({ email, password: senha });
+  } else {
+    result = await sb.auth.signUp({ email, password: senha });
+  }
+
+  const { data, error } = result;
+
+  if (error) {
+    let msg = error.message;
+    if (msg.includes('Invalid login')) msg = 'E-mail ou senha incorretos.';
+    if (msg.includes('already registered')) msg = 'E-mail já cadastrado. Tente fazer login.';
+    if (msg.includes('Password should')) msg = 'A senha deve ter pelo menos 6 caracteres.';
+    showMsg(msg, 'error');
+    btn.disabled = false;
+    btn.textContent = currentTab === 'login' ? 'Entrar' : 'Criar conta';
+    return;
+  }
+
+  if (currentTab === 'cadastro' && !data.session) {
+    showMsg('✅ Conta criada! Verifique seu e-mail para confirmar.', 'success');
+    btn.disabled = false;
+    btn.textContent = 'Criar conta';
+    return;
+  }
+
+  currentUser = data.session?.user || data.user;
+  await checkSubscription(currentUser);
+}
+
+// ─── Ir para Stripe Checkout ───
+async function assinar() {
+  const btn = document.getElementById('btnAssinar');
+  btn.disabled = true;
+  btn.textContent = 'Redirecionando...';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const user = session?.user;
+
+    const response = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id, email: user.email }),
+    });
+
+    const result = await response.json();
+
+    if (result.url) {
+      window.location.href = result.url;
+    } else {
+      showMsg('Erro ao iniciar pagamento. Tente novamente.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Assinar agora →';
+    }
+  } catch (e) {
+    showMsg('Erro de conexão. Tente novamente.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Assinar agora →';
+  }
+}
+
+// ─── Sair ───
+async function sair() {
+  await sb.auth.signOut();
+  currentUser = null;
+  document.getElementById('authSection').style.display = 'block';
+  document.getElementById('subSection').style.display = 'none';
+}
+
+// ─── Trocar aba ───
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabCadastro').classList.toggle('active', tab === 'cadastro');
+  document.getElementById('btnAuth').textContent = tab === 'login' ? 'Entrar' : 'Criar conta';
+  clearMsg();
+}
+
+function showMsg(msg, type) {
+  const el = document.getElementById('msg');
+  el.textContent = msg;
+  el.className = 'msg ' + type;
+}
+function clearMsg() {
+  const el = document.getElementById('msg');
+  el.className = 'msg';
+}
+
+init();
+</script>
+</body>
+</html>
