@@ -228,9 +228,48 @@ td{padding:9px 12px;vertical-align:middle}
   .pp-footer{margin-top:30px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center;line-height:1.7}
 }
 
+/* MOBILE BOTTOM NAV */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;z-index:200}
+.mobile-nav-items{display:flex}
+.mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 4px 10px;cursor:pointer;color:#6b7280;font-size:9px;font-weight:600;flex:1;text-align:center;border-top:3px solid transparent;transition:all .15s}
+.mobile-nav-item.active{color:#e63946;border-top-color:#e63946}
+.mobile-nav-icon{font-size:20px;line-height:1}
+
 @media(max-width:1100px){.rec-page{grid-template-columns:1fr}}
-@media(max-width:900px){.sidebar{width:60px;padding:12px 0}.sidebar-label,.nav-item span:not(.nav-icon){display:none}.nav-item{padding:12px;justify-content:center}.cards{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.main{padding:12px}.card .val{font-size:18px}.fgrid{grid-template-columns:1fr}}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .mobile-nav{display:block}
+  .main{padding:12px 10px 76px}
+  .cards{grid-template-columns:1fr 1fr;gap:10px}
+  .card{padding:12px 14px}
+  .card .val{font-size:18px}
+  .card label{font-size:9px}
+  .card .sub{font-size:10px}
+  .header{padding:10px 14px;gap:8px}
+  .company-name{font-size:13px}
+  .hdate{display:none}
+  .fbar{padding:10px;gap:8px}
+  .fbar .fg{flex:1 1 calc(50% - 4px);min-width:0}
+  .fbar .fg select,.fbar .fg input{width:100%;min-width:unset;font-size:13px}
+  .fbar>.btn{flex:1 1 calc(50% - 4px)}
+  .twrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:580px}
+  .sgrid{grid-template-columns:1fr}
+  .rec-preview{display:none}
+  .fgrid{grid-template-columns:1fr}
+  .agrid{grid-template-columns:1fr}
+  .modal{width:96vw!important;max-width:96vw!important;padding:20px 16px}
+  .mbtns{flex-direction:column-reverse}
+  .mbtns .btn{width:100%;padding:12px}
+  .cards[style*="repeat(3"]{grid-template-columns:1fr 1fr!important}
+  .cards[style*="repeat(4"]{grid-template-columns:1fr 1fr!important}
+  .rec-list{grid-template-columns:1fr}
+  .btn-cfg{padding:5px 9px;font-size:11px}
+}
+@media(max-width:400px){
+  .cards{grid-template-columns:1fr}
+  .header-right{gap:6px}
+}
 </style>
 </head>
 <body>
@@ -606,31 +645,37 @@ td{padding:9px 12px;vertical-align:middle}
   </main>
 </div>
 
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-items">
+    <div class="mobile-nav-item active" id="mnav-gastos" onclick="goTo('gastos')"><div class="mobile-nav-icon">📊</div>Gastos</div>
+    <div class="mobile-nav-item" id="mnav-recibo" onclick="goTo('recibo')"><div class="mobile-nav-icon">🧾</div>Recibos</div>
+    <div class="mobile-nav-item" id="mnav-receitas" onclick="goTo('receitas')"><div class="mobile-nav-icon">💚</div>Receitas</div>
+    <div class="mobile-nav-item" id="mnav-despesas" onclick="goTo('despesas')"><div class="mobile-nav-icon">🔴</div>Despesas</div>
+    <div class="mobile-nav-item" id="mnav-agenda" onclick="goTo('agenda')"><div class="mobile-nav-icon">📅</div>Agenda</div>
+  </div>
+</nav>
+
 <script>
 // ═══ STORAGE ═══
-let lancs   = JSON.parse(localStorage.getItem('cf_lancs') ||'[]');
-let evts    = JSON.parse(localStorage.getItem('cf_evts')  ||'[]');
-let recibos = JSON.parse(localStorage.getItem('cf_recs')  ||'[]');
-let cfg     = JSON.parse(localStorage.getItem('cf_cfg')   ||'{"nome":"MINHA EMPRESA","doc":"","seg":"CONTROLE FINANCEIRO","icon":"💼","tel":"","email":"","end":""}');
+let lancs=[], evts=[], recibos=[];
+let cfg={"nome":"MINHA EMPRESA","doc":"","seg":"CONTROLE FINANCEIRO","icon":"💼","tel":"","email":"","end":""};
 let editLancId=null, editRecId=null;
+let _uid='';
 
-const saveL  = ()=>localStorage.setItem('cf_lancs',JSON.stringify(lancs));
-const saveE  = ()=>localStorage.setItem('cf_evts', JSON.stringify(evts));
-const saveR  = ()=>localStorage.setItem('cf_recs', JSON.stringify(recibos));
-const saveCfg= ()=>localStorage.setItem('cf_cfg',  JSON.stringify(cfg));
+const saveL  = ()=>localStorage.setItem('fg_lancs_'+_uid,JSON.stringify(lancs));
+const saveE  = ()=>localStorage.setItem('fg_evts_'+_uid, JSON.stringify(evts));
+const saveR  = ()=>localStorage.setItem('fg_recs_'+_uid, JSON.stringify(recibos));
+const saveCfg= ()=>localStorage.setItem('fg_cfg_'+_uid,  JSON.stringify(cfg));
 const nextId = a=>a.length?Math.max(...a.map(x=>x.id))+1:1;
 
-// Demo data
-if(!lancs.length){
-  const t=new Date().toISOString().slice(0,10);
-  const y=new Date(Date.now()-86400000).toISOString().slice(0,10);
-  lancs=[
-    {id:1,data:t,tipo:'SAÍDA',valor:150,cliente:'Fornecedor A',desc:'Material de escritório',pag:'PIX',status:'CONCLUÍDA',obs:''},
-    {id:2,data:t,tipo:'ENTRADA',valor:500,cliente:'Cliente Silva',desc:'Serviço prestado',pag:'FATURADO',status:'CONCLUÍDA',obs:'OK'},
-    {id:3,data:t,tipo:'ENTRADA',valor:300,cliente:'Cliente Costa',desc:'Produto vendido',pag:'PENDENTE',status:'CONCLUÍDA',obs:''},
-    {id:4,data:y,tipo:'ENTRADA',valor:200,cliente:'Cliente Lima',desc:'Consultoria',pag:'PIX',status:'CONCLUÍDA',obs:'Pago'},
-    {id:5,data:y,tipo:'SAÍDA',valor:80,cliente:'Fornecedor B',desc:'Conta de água',pag:'DINHEIRO',status:'CONCLUÍDA',obs:''},
-  ];saveL();
+function loadUserData(uid){
+  _uid=uid;
+  lancs   = JSON.parse(localStorage.getItem('fg_lancs_'+uid)||'[]');
+  evts    = JSON.parse(localStorage.getItem('fg_evts_'+uid) ||'[]');
+  recibos = JSON.parse(localStorage.getItem('fg_recs_'+uid) ||'[]');
+  cfg     = JSON.parse(localStorage.getItem('fg_cfg_'+uid)  ||'{"nome":"MINHA EMPRESA","doc":"","seg":"CONTROLE FINANCEIRO","icon":"💼","tel":"","email":"","end":""}');
+  applyConfig();render();renderReciboList();
 }
 
 // ═══ UTILS ═══
@@ -678,11 +723,14 @@ function goTo(p){
   pages.forEach(n=>{
     document.getElementById('page-'+n).classList.toggle('active',n===p);
     document.getElementById('nav-'+n).classList.toggle('active',n===p);
+    const mn=document.getElementById('mnav-'+n);
+    if(mn)mn.classList.toggle('active',n===p);
   });
   if(p==='receitas')renderRec();
   if(p==='despesas')renderDes();
   if(p==='agenda')  renderEvts();
   if(p==='recibo')  renderReciboList();
+  window.scrollTo(0,0);
 }
 
 // ═══ FLUXO ═══
@@ -1220,13 +1268,14 @@ function showToast(msg,ms=6000){
 
 // ═══ INIT ═══
 document.getElementById('headerDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-applyConfig();render();renderReciboList();
 
 // ═══ AUTH GUARD ═══
 const SUPABASE_URL='https://gxqekojzvmssdqutcmjk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_Jsp0-SFoFAHHQp5MxhqOjg_uEO3Pfih';
 const {createClient}=supabase;
-const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
+  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'fingestor-auth-token'}
+});
 
 // Overlay de carregamento
 const authOverlay=document.createElement('div');
@@ -1236,6 +1285,7 @@ authOverlay.innerHTML='<div style="width:36px;height:36px;border:3px solid rgba(
 document.body.appendChild(authOverlay);
 
 async function initAuth(){
+  // getSession lê da localStorage sem precisar de rede — mantém sessão entre abas e reloads
   const {data:{session}}=await sb.auth.getSession();
 
   if(!session){
@@ -1243,32 +1293,37 @@ async function initAuth(){
     return;
   }
 
+  const uid=session.user.id;
+
   // Verificar se vem do Stripe (session_id na URL)
   const params=new URLSearchParams(window.location.search);
   const stripeSessionId=params.get('session_id');
   if(stripeSessionId){
-    // Ativar assinatura no Supabase
-    try{
-      await fetch('/api/verify-session?session_id='+stripeSessionId+'&user_id='+session.user.id);
-    }catch(e){console.warn('verify-session:',e);}
-    // Limpar URL
+    try{ await fetch('/api/verify-session?session_id='+stripeSessionId+'&user_id='+uid); }
+    catch(e){console.warn('verify-session:',e);}
     window.history.replaceState({},'','/app.html');
+    sessionStorage.removeItem('fg_sub_'+uid); // forçar re-verificação após pagamento
   }
 
-  // Verificar assinatura
-  const {data,error}=await sb.from('subscriptions').select('status').eq('user_id',session.user.id).single();
-
-  if(error||!data||data.status!=='active'){
-    // Sem assinatura → login
-    window.location.href='login.html?msg=subscription';
-    return;
+  // Cache da assinatura na sessionStorage (evita hit no Supabase em toda troca de aba)
+  const cacheKey='fg_sub_'+uid;
+  if(sessionStorage.getItem(cacheKey)!=='active'){
+    const {data,error}=await sb.from('subscriptions').select('status').eq('user_id',uid).single();
+    if(error||!data||data.status!=='active'){
+      window.location.href='login.html?msg=subscription';
+      return;
+    }
+    sessionStorage.setItem(cacheKey,'active');
   }
 
-  // OK — esconder overlay
+  // Carregar dados do usuário e mostrar app
+  loadUserData(uid);
   authOverlay.style.display='none';
 }
 
 async function sair(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) sessionStorage.removeItem('fg_sub_'+session.user.id);
   await sb.auth.signOut();
   window.location.href='login.html';
 }

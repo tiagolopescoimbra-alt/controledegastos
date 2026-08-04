@@ -96,7 +96,9 @@ const SUPABASE_URL = 'https://gxqekojzvmssdqutcmjk.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Jsp0-SFoFAHHQp5MxhqOjg_uEO3Pfih';
 
 const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'fingestor-auth-token' }
+});
 
 let currentUser = null;
 let currentTab = 'login';
