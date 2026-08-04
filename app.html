@@ -681,19 +681,56 @@ let editLancId=null, editRecId=null;
 let _uid='';
 let selectedIds=new Set();
 
-const saveL  = ()=>localStorage.setItem('fg_lancs_'+_uid,JSON.stringify(lancs));
-const saveE  = ()=>localStorage.setItem('fg_evts_'+_uid, JSON.stringify(evts));
-const saveR  = ()=>localStorage.setItem('fg_recs_'+_uid, JSON.stringify(recibos));
-const saveCfg= ()=>localStorage.setItem('fg_cfg_'+_uid,  JSON.stringify(cfg));
+const saveL = () => {
+  localStorage.setItem('fg_lancs_'+_uid,JSON.stringify(lancs));
+  if(!_uid||!sb)return;
+  if(lancs.length){
+    sb.from('lancamentos').upsert(lancs.map(r=>({user_id:_uid,local_id:r.id,data:r.data,tipo:r.tipo,valor:r.valor,cliente:r.cliente||'',descricao:r.desc||'',pag:r.pag||'',status:r.status||'CONCLUÍDA',obs:r.obs||''})),{onConflict:'user_id,local_id'}).then(({error})=>{if(error)console.error('sync lancs:',error);});
+  }
+};
+const saveE = () => {
+  localStorage.setItem('fg_evts_'+_uid,JSON.stringify(evts));
+  if(!_uid||!sb)return;
+  if(evts.length){
+    sb.from('eventos').upsert(evts.map(e=>({user_id:_uid,local_id:e.id,tit:e.tit||'',data:e.data||null,hora:e.hora||'',pri:e.pri||'normal',cat:e.cat||'',descricao:e.desc||''})),{onConflict:'user_id,local_id'}).then(({error})=>{if(error)console.error('sync evts:',error);});
+  }
+};
+const saveR = () => {
+  localStorage.setItem('fg_recs_'+_uid,JSON.stringify(recibos));
+  if(!_uid||!sb)return;
+  if(recibos.length){
+    sb.from('recibos').upsert(recibos.map(r=>({user_id:_uid,local_id:r.id,dados:r})),{onConflict:'user_id,local_id'}).then(({error})=>{if(error)console.error('sync recibos:',error);});
+  }
+};
+const saveCfg = () => {
+  localStorage.setItem('fg_cfg_'+_uid,JSON.stringify(cfg));
+  if(!_uid||!sb)return;
+  sb.from('configuracoes').upsert({user_id:_uid,nome:cfg.nome||'',doc:cfg.doc||'',seg:cfg.seg||'',icon:cfg.icon||'',tel:cfg.tel||'',email:cfg.email||'',end_text:cfg.end||'',updated_at:new Date().toISOString()},{onConflict:'user_id'}).then(({error})=>{if(error)console.error('sync cfg:',error);});
+};
 const nextId = a=>a.length?Math.max(...a.map(x=>x.id))+1:1;
 
-function loadUserData(uid){
+async function loadUserData(uid){
   _uid=uid;
+  // Carrega localStorage primeiro (UI instantânea)
   lancs   = JSON.parse(localStorage.getItem('fg_lancs_'+uid)||'[]');
   evts    = JSON.parse(localStorage.getItem('fg_evts_'+uid) ||'[]');
   recibos = JSON.parse(localStorage.getItem('fg_recs_'+uid) ||'[]');
   cfg     = JSON.parse(localStorage.getItem('fg_cfg_'+uid)  ||'{"nome":"MINHA EMPRESA","doc":"","seg":"CONTROLE FINANCEIRO","icon":"💼","tel":"","email":"","end":""}');
   applyConfig();render();renderReciboList();
+  // Depois sincroniza com Supabase (nuvem prevalece)
+  try{
+    const[lR,eR,rR,cR]=await Promise.all([
+      sb.from('lancamentos').select('*').eq('user_id',uid),
+      sb.from('eventos').select('*').eq('user_id',uid),
+      sb.from('recibos').select('*').eq('user_id',uid),
+      sb.from('configuracoes').select('*').eq('user_id',uid).maybeSingle()
+    ]);
+    if(lR.data){lancs=lR.data.map(r=>({id:r.local_id,data:r.data,tipo:r.tipo,valor:parseFloat(r.valor),cliente:r.cliente||'',desc:r.descricao||'',pag:r.pag||'',status:r.status||'CONCLUÍDA',obs:r.obs||''}));localStorage.setItem('fg_lancs_'+uid,JSON.stringify(lancs));}
+    if(eR.data){evts=eR.data.map(r=>({id:r.local_id,tit:r.tit||'',data:r.data||'',hora:r.hora||'',pri:r.pri||'normal',cat:r.cat||'',desc:r.descricao||''}));localStorage.setItem('fg_evts_'+uid,JSON.stringify(evts));}
+    if(rR.data){recibos=rR.data.map(r=>r.dados);localStorage.setItem('fg_recs_'+uid,JSON.stringify(recibos));}
+    if(cR.data){cfg={nome:cR.data.nome||'MINHA EMPRESA',doc:cR.data.doc||'',seg:cR.data.seg||'CONTROLE FINANCEIRO',icon:cR.data.icon||'💼',tel:cR.data.tel||'',email:cR.data.email||'',end:cR.data.end_text||''};localStorage.setItem('fg_cfg_'+uid,JSON.stringify(cfg));}
+    applyConfig();render();renderReciboList();
+  }catch(e){console.warn('Supabase sync falhou, usando cache local:',e);}
 }
 
 // ═══ UTILS ═══
@@ -814,7 +851,7 @@ function saveLanc(){
   if(editLancId){const i=lancs.findIndex(x=>x.id===editLancId);lancs[i]=obj;}else lancs.push(obj);
   saveL();closeLanc();render();
 }
-function delLanc(id){if(!confirm('Excluir lançamento?'))return;lancs=lancs.filter(x=>x.id!==id);selectedIds.delete(id);saveL();render();}
+function delLanc(id){if(!confirm('Excluir lançamento?'))return;lancs=lancs.filter(x=>x.id!==id);selectedIds.delete(id);saveL();render();if(_uid&&sb)sb.from('lancamentos').delete().eq('user_id',_uid).eq('local_id',id).then(({error})=>{if(error)console.error('del lanc:',error);});}
 
 // ═══ SELEÇÃO MÚLTIPLA ═══
 function toggleRow(id,checked){
@@ -842,10 +879,12 @@ function updateBulkBar(){
 function deletarSelecionados(){
   if(!selectedIds.size)return;
   if(!confirm(`Apagar ${selectedIds.size} lançamento${selectedIds.size!==1?'s':''}? Essa ação não pode ser desfeita.`))return;
+  const ids=[...selectedIds];
   lancs=lancs.filter(r=>!selectedIds.has(r.id));
   selectedIds.clear();
   saveL();render();
   showToast('🗑️ Lançamentos apagados.');
+  if(_uid&&sb)sb.from('lancamentos').delete().eq('user_id',_uid).in('local_id',ids).then(({error})=>{if(error)console.error('del lancs bulk:',error);});
 }
 
 // ═══ RELATÓRIO PDF ═══
@@ -1188,7 +1227,7 @@ function editarRecibo(id){
   calcRecibo();
 }
 
-function delRecibo(id){if(!confirm('Excluir recibo?'))return;recibos=recibos.filter(x=>x.id!==id);saveR();renderReciboList();}
+function delRecibo(id){if(!confirm('Excluir recibo?'))return;recibos=recibos.filter(x=>x.id!==id);saveR();renderReciboList();if(_uid&&sb)sb.from('recibos').delete().eq('user_id',_uid).eq('local_id',id).then(({error})=>{if(error)console.error('del recibo:',error);});}
 
 function gerarPDF(modo='download'){
   const num=document.getElementById('rNum').value||'—';
@@ -1384,7 +1423,7 @@ function saveEvt(){
   evts.push({id:nextId(evts),tit,data,hora:document.getElementById('eHora').value,pri:document.getElementById('ePri').value,cat:document.getElementById('eCat').value,desc:document.getElementById('eDesc').value});
   saveE();renderEvts();closeEvt();
 }
-function delEvt(id){if(!confirm('Excluir?'))return;evts=evts.filter(x=>x.id!==id);saveE();renderEvts();}
+function delEvt(id){if(!confirm('Excluir?'))return;evts=evts.filter(x=>x.id!==id);saveE();renderEvts();if(_uid&&sb)sb.from('eventos').delete().eq('user_id',_uid).eq('local_id',id).then(({error})=>{if(error)console.error('del evt:',error);});}
 function renderEvts(){
   const grid=document.getElementById('agGrid');
   if(!evts.length){grid.innerHTML='<p class="empty">Nenhum evento.</p>';return;}
