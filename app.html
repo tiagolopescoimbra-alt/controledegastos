@@ -195,6 +195,12 @@ td{padding:9px 12px;vertical-align:middle}
 
 .empty{text-align:center;padding:40px;color:#bbb;font-size:13px}
 
+/* BULK ACTIONS */
+.bulk-bar{background:#1a1a2e;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.bulk-bar.show{display:flex}
+.bulk-bar .bulk-count{flex:1;font-size:13px;font-weight:600}
+.cb-row{cursor:pointer;width:15px;height:15px;accent-color:#e63946}
+
 /* TOAST */
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:14px 22px;border-radius:12px;font-size:13px;line-height:1.6;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:999;max-width:420px;text-align:center;animation:toastIn .3s ease}
 @keyframes toastIn{from{opacity:0;bottom:10px}to{opacity:1;bottom:28px}}
@@ -416,13 +422,24 @@ td{padding:9px 12px;vertical-align:middle}
           <select id="fPag"><option value="">Todos</option><option>FATURADO</option><option>PENDENTE</option><option>PIX</option><option>DINHEIRO</option><option>CARTÃO</option><option>TRANSFERÊNCIA</option></select></div>
         <div class="fg"><label>Status</label>
           <select id="fSt"><option value="">Todos</option><option>CONCLUÍDA</option><option>EM ANDAMENTO</option><option>CANCELADA</option></select></div>
-        <button class="btn btn-dark" onclick="render()">🔍 Filtrar</button>
-        <button class="btn btn-gray" onclick="clearF()">✕</button>
-        <button class="btn btn-green" onclick="openLanc()" style="margin-left:auto">+ Novo Lançamento</button>
+        <div style="display:flex;gap:8px;width:100%;flex-wrap:wrap">
+          <button class="btn btn-dark" style="flex:1;min-width:80px" onclick="render()">🔍 Filtrar</button>
+          <button class="btn btn-gray" onclick="clearF()">✕</button>
+          <button class="btn btn-blue" style="flex:1;min-width:110px" onclick="gerarRelatorio()">📄 Relatório PDF</button>
+          <button class="btn btn-green" style="flex:1 1 100%" onclick="openLanc()">+ Novo Lançamento</button>
+        </div>
+      </div>
+      <div class="bulk-bar" id="bulkBar">
+        <span class="bulk-count" id="bulkCount">0 selecionados</span>
+        <button class="btn btn-red btn-sm" onclick="deletarSelecionados()">🗑️ Apagar selecionados</button>
+        <button class="btn btn-gray btn-sm" onclick="desmarcarTodos()">✕ Desmarcar</button>
       </div>
       <div class="twrap">
         <div class="thead-row"><h3>Lançamentos</h3><span class="tcount" id="tCount"></span></div>
-        <table><thead><tr><th>DATA</th><th>TIPO</th><th>VALOR</th><th>CLIENTE</th><th>DESCRIÇÃO</th><th>PAGAMENTO</th><th>STATUS</th><th>SUBTOTAL</th><th>OBS</th><th></th></tr></thead>
+        <table><thead><tr>
+          <th style="width:36px;padding:8px;text-align:center"><input type="checkbox" id="cbAll" class="cb-row" onclick="toggleAll(this)" title="Selecionar todos"></th>
+          <th>DATA</th><th>TIPO</th><th>VALOR</th><th>CLIENTE</th><th>DESCRIÇÃO</th><th>PAGAMENTO</th><th>STATUS</th><th>SUBTOTAL</th><th>OBS</th><th></th>
+        </tr></thead>
         <tbody id="tbody"></tbody></table>
       </div>
     </div>
@@ -662,6 +679,7 @@ let lancs=[], evts=[], recibos=[];
 let cfg={"nome":"MINHA EMPRESA","doc":"","seg":"CONTROLE FINANCEIRO","icon":"💼","tel":"","email":"","end":""};
 let editLancId=null, editRecId=null;
 let _uid='';
+let selectedIds=new Set();
 
 const saveL  = ()=>localStorage.setItem('fg_lancs_'+_uid,JSON.stringify(lancs));
 const saveE  = ()=>localStorage.setItem('fg_evts_'+_uid, JSON.stringify(evts));
@@ -752,11 +770,14 @@ function render(){
   document.getElementById('cEntQ').textContent=`${qe} lançamento${qe!==1?'s':''}`;
   document.getElementById('cSaiQ').textContent=`${qs} lançamento${qs!==1?'s':''}`;
   document.getElementById('tCount').textContent=`${rows.length} resultado${rows.length!==1?'s':''}`;
-  if(!rows.length){document.getElementById('tbody').innerHTML=`<tr><td colspan="10" class="empty">Nenhum lançamento.</td></tr>`;return;}
+  if(!rows.length){document.getElementById('tbody').innerHTML=`<tr><td colspan="11" class="empty">Nenhum lançamento.</td></tr>`;updateBulkBar();return;}
   let sub=0;
   document.getElementById('tbody').innerHTML=rows.map(r=>{
     sub+=r.tipo==='ENTRADA'?r.valor:-r.valor;
-    return`<tr><td>${fmtD(r.data)}</td><td>${badge(r.tipo)}</td><td class="${r.tipo==='ENTRADA'?'vpos':'vneg'}">${fmt(r.valor)}</td>
+    const sel=selectedIds.has(r.id);
+    return`<tr style="${sel?'background:#f0f4ff':''}">
+      <td style="padding:6px 8px;text-align:center"><input type="checkbox" class="cb-row" ${sel?'checked':''} onchange="toggleRow(${r.id},this.checked)" onclick="event.stopPropagation()"></td>
+      <td>${fmtD(r.data)}</td><td>${badge(r.tipo)}</td><td class="${r.tipo==='ENTRADA'?'vpos':'vneg'}">${fmt(r.valor)}</td>
       <td>${r.cliente||'—'}</td><td>${r.desc||'—'}</td><td>${badge(r.pag)}</td><td>${r.status?badge(r.status):'—'}</td>
       <td class="subtotal">${fmt(sub)}</td><td class="obs-cell">${r.obs||''}</td>
       <td style="white-space:nowrap">
@@ -764,6 +785,7 @@ function render(){
         <button class="btn btn-red btn-sm" onclick="delLanc(${r.id})" style="margin-left:4px">🗑️</button>
       </td></tr>`;
   }).join('');
+  updateBulkBar();
 }
 function clearF(){['fTipo','fPag','fSt'].forEach(id=>document.getElementById(id).value='');['fDi','fDf','fBusca'].forEach(id=>document.getElementById(id).value='');render();}
 function openLanc(id=null){
@@ -792,7 +814,129 @@ function saveLanc(){
   if(editLancId){const i=lancs.findIndex(x=>x.id===editLancId);lancs[i]=obj;}else lancs.push(obj);
   saveL();closeLanc();render();
 }
-function delLanc(id){if(!confirm('Excluir lançamento?'))return;lancs=lancs.filter(x=>x.id!==id);saveL();render();}
+function delLanc(id){if(!confirm('Excluir lançamento?'))return;lancs=lancs.filter(x=>x.id!==id);selectedIds.delete(id);saveL();render();}
+
+// ═══ SELEÇÃO MÚLTIPLA ═══
+function toggleRow(id,checked){
+  if(checked)selectedIds.add(id);else selectedIds.delete(id);
+  updateBulkBar();
+}
+function toggleAll(cb){
+  const rows=getFiltered();
+  if(cb.checked)rows.forEach(r=>selectedIds.add(r.id));else rows.forEach(r=>selectedIds.delete(r.id));
+  render();
+}
+function desmarcarTodos(){selectedIds.clear();render();}
+function updateBulkBar(){
+  const n=selectedIds.size;
+  const bar=document.getElementById('bulkBar');
+  if(bar){bar.className='bulk-bar'+(n>0?' show':'');document.getElementById('bulkCount').textContent=`${n} selecionado${n!==1?'s':''}`;}
+  const cbAll=document.getElementById('cbAll');
+  if(cbAll){
+    const vis=getFiltered().map(r=>r.id);
+    const allSel=vis.length>0&&vis.every(id=>selectedIds.has(id));
+    cbAll.checked=allSel;
+    cbAll.indeterminate=!allSel&&vis.some(id=>selectedIds.has(id));
+  }
+}
+function deletarSelecionados(){
+  if(!selectedIds.size)return;
+  if(!confirm(`Apagar ${selectedIds.size} lançamento${selectedIds.size!==1?'s':''}? Essa ação não pode ser desfeita.`))return;
+  lancs=lancs.filter(r=>!selectedIds.has(r.id));
+  selectedIds.clear();
+  saveL();render();
+  showToast('🗑️ Lançamentos apagados.');
+}
+
+// ═══ RELATÓRIO PDF ═══
+async function gerarRelatorio(){
+  const rows=getFiltered();
+  if(!rows.length){alert('Nenhum lançamento para exportar. Aplique os filtros desejados e tente novamente.');return;}
+  let te=0,ts=0;
+  rows.forEach(r=>{if(r.tipo==='ENTRADA')te+=r.valor;else ts+=r.valor;});
+  const saldo=te-ts;
+  const html=`<div style="font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#000;padding:28px 32px;max-width:700px;margin:0 auto;background:#fff">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #1a1a2e">
+      <div>
+        <h1 style="font-size:20px;font-weight:800;color:#1a1a2e;margin:0 0 4px">${cfg.nome||'MINHA EMPRESA'}</h1>
+        <p style="font-size:12px;color:#555;margin:0">${[cfg.doc,cfg.email,cfg.end].filter(Boolean).join(' · ')}</p>
+      </div>
+      <div style="text-align:right">
+        <h2 style="font-size:18px;font-weight:800;color:#1a1a2e;margin:0 0 4px">Relatório de Caixa</h2>
+        <p style="font-size:11px;color:#777;margin:0">Emitido em ${new Date().toLocaleDateString('pt-BR')}</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:20px">
+      <div style="flex:1;background:#d4edda;border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:#155724;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Entradas</div>
+        <div style="font-size:20px;font-weight:800;color:#155724">${fmt(te)}</div>
+      </div>
+      <div style="flex:1;background:#f8d7da;border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:#721c24;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Saídas</div>
+        <div style="font-size:20px;font-weight:800;color:#721c24">${fmt(ts)}</div>
+      </div>
+      <div style="flex:1;background:${saldo>=0?'#fff3cd':'#f8d7da'};border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:${saldo>=0?'#856404':'#721c24'};text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Saldo</div>
+        <div style="font-size:20px;font-weight:800;color:${saldo>=0?'#856404':'#721c24'}">${fmt(saldo)}</div>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:20px">
+      <thead><tr style="background:#1a1a2e;color:#fff">
+        <th style="padding:8px 10px;text-align:left">DATA</th>
+        <th style="padding:8px 10px;text-align:left">TIPO</th>
+        <th style="padding:8px 10px;text-align:right">VALOR</th>
+        <th style="padding:8px 10px;text-align:left">CLIENTE</th>
+        <th style="padding:8px 10px;text-align:left">DESCRIÇÃO</th>
+        <th style="padding:8px 10px;text-align:left">PAGAMENTO</th>
+        <th style="padding:8px 10px;text-align:left">STATUS</th>
+      </tr></thead>
+      <tbody>${rows.map((r,i)=>`<tr style="background:${i%2===0?'#fff':'#f9fafb'};border-bottom:1px solid #f0f0f0">
+        <td style="padding:7px 10px">${fmtD(r.data)}</td>
+        <td style="padding:7px 10px;font-weight:700;color:${r.tipo==='ENTRADA'?'#27ae60':'#e63946'}">${r.tipo}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:700;color:${r.tipo==='ENTRADA'?'#27ae60':'#e63946'}">${r.tipo==='ENTRADA'?'+':'-'}${fmt(r.valor)}</td>
+        <td style="padding:7px 10px">${r.cliente||'—'}</td>
+        <td style="padding:7px 10px">${r.desc||'—'}</td>
+        <td style="padding:7px 10px">${r.pag}</td>
+        <td style="padding:7px 10px">${r.status||'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center;line-height:1.8">
+      ${cfg.nome}${cfg.doc?' · '+cfg.doc:''}<br>Relatório gerado em ${new Date().toLocaleString('pt-BR')} · ${rows.length} lançamento${rows.length!==1?'s':''}
+    </div>
+  </div>`;
+  const el=document.getElementById('printArea');
+  el.innerHTML=html;el.style.display='block';el.style.position='fixed';el.style.left='-9999px';el.style.top='0';el.style.width='794px';el.style.background='#fff';
+  showToast('⏳ Gerando relatório PDF...',3000);
+  try{
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#fff',width:794});
+    el.style.display='none';el.style.position='';el.style.left='';el.style.top='';el.style.width='';
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const pW=pdf.internal.pageSize.getWidth(),pH=pdf.internal.pageSize.getHeight();
+    const imgData=canvas.toDataURL('image/jpeg',0.95);
+    const ratio=canvas.width/canvas.height;
+    const imgH=pW/ratio;
+    if(imgH<=pH){
+      pdf.addImage(imgData,'JPEG',0,0,pW,imgH);
+    }else{
+      let remaining=canvas.height,y=0;
+      const pageH=Math.floor(canvas.width*(pH/pW));
+      while(remaining>0){
+        const slice=document.createElement('canvas');
+        slice.width=canvas.width;slice.height=Math.min(pageH,remaining);
+        slice.getContext('2d').drawImage(canvas,0,y*pageH,canvas.width,slice.height,0,0,canvas.width,slice.height);
+        if(y>0)pdf.addPage();
+        pdf.addImage(slice.toDataURL('image/jpeg',0.95),'JPEG',0,0,pW,slice.height*pW/canvas.width);
+        remaining-=pageH;y++;
+      }
+    }
+    pdf.save(`relatorio_caixa_${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast('✅ Relatório PDF gerado com sucesso!');
+  }catch(err){
+    el.style.display='none';console.error(err);
+    alert('Erro ao gerar relatório. Tente novamente.');
+  }
+}
 
 // ═══ RECIBO ═══
 let rCli=null, rItems=[], rPags=[], rCond='', rGarantiaOn=true;
